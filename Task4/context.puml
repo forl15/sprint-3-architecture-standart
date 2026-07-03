@@ -1,0 +1,34 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C4 Context Diagram\nПередача актуальных депозитных ставок в системы кол-центров
+
+LAYOUT_LEFT_RIGHT()
+
+Person(rateManager, "Сотрудник депозитного/\nкредитного подразделения","Управляет депозитными ставками")
+
+Person(callOperator, "Оператор кол-центра","Консультирует клиентов")
+
+Person(partnerOperator, "Оператор партнёрского\nкол-центра","Консультирует клиентов")
+
+System(abs, "Автоматизированная банковская система (АБС)","Хранение и управление депозитными ставками")
+
+System(depositPlatform, "Платформа открытия депозитов","Передает актуальные ставки внутренним и внешним потребителям")
+
+System_Ext(callCenter, "Система кол-центра","CRM подрядчика")
+
+System_Ext(partnerCC, "Партнёрский кол-центр","Внешняя информационная система")
+
+Rel(rateManager, abs,"Изменяет и утверждает ставки")
+
+Rel(abs, depositPlatform,"Передает изменения ставок")
+
+Rel(depositPlatform, callCenter,"Предоставляет актуальные ставки\nREST API")
+
+Rel(callOperator, callCenter,"Просматривает ставки")
+
+Rel(depositPlatform, partnerCC,"Передает файл ставок\nCSV/XML по SFTP")
+
+Rel(partnerOperator, partnerCC,"Использует актуальные ставки")
+
+@enduml

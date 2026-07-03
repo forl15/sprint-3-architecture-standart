@@ -1,0 +1,72 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C4 Container Diagram\nПередача актуальных депозитных ставок в системы кол-центров
+
+LAYOUT_LEFT_RIGHT()
+
+'=========================
+' Пользователи
+'=========================
+
+Person(rateManager, "Сотрудник депозитного/\nкредитного подразделения")
+Person(callOperator, "Оператор кол-центра")
+Person(partnerOperator, "Оператор партнёрского кол-центра")
+
+'=========================
+' Внешние системы
+'=========================
+
+System_Ext(abs, "АБС", "Delphi + Oracle")
+System_Ext(callCenter, "Система кол-центра", "CRM подрядчика")
+System_Ext(partnerCC, "Партнёрский кол-центр", "Внешняя система")
+
+'=========================
+' Платформа открытия депозитов
+'=========================
+
+System_Boundary(depositPlatform, "Платформа открытия депозитов") {
+
+Container(sync,"Rate Synchronizer","Java Spring Boot","Получает изменения ставок из АБС и публикует события")
+
+ContainerQueue(kafka,"Kafka","Apache Kafka","Передача событий об изменении ставок")
+
+Container(rateService,"Rate Service","Java Spring Boot","Предоставляет REST API с актуальными депозитными ставками")
+
+ContainerDb(rateDB,"Rate DB","MS SQL","Read Model депозитных ставок")
+
+Container(fileExport,"File Export Service","Java Spring Boot","Формирует файл ставок для партнёрского кол-центра")
+
+}
+
+'=========================
+' Пользователи
+'=========================
+
+Rel(rateManager, abs,"Изменяет ставки")
+
+Rel(callOperator, callCenter,"Работает в CRM")
+
+Rel(partnerOperator, partnerCC,"Работает в системе")
+
+'=========================
+' Интеграции
+'=========================
+
+Rel(sync, abs,"Получить изменения ставок")
+
+Rel(sync, kafka,"Публикует событие RatesChanged")
+
+Rel(kafka, rateService,"Подписка")
+
+Rel(rateService, rateDB,"Обновляет Read Model")
+
+Rel(callCenter, rateService,"REST API")
+
+Rel(kafka, fileExport,"Подписка")
+
+Rel(fileExport, rateService,"Получает актуальные ставки")
+
+Rel(fileExport, partnerCC,"CSV/XML по SFTP")
+
+@enduml
