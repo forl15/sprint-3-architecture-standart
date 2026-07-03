@@ -1,0 +1,167 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C4 Container Diagram\nMVP "Онлайн-открытие депозитов"
+
+LAYOUT_LEFT_RIGHT()
+
+'========================
+' Пользователи
+'========================
+
+Person(customer, "Клиент")
+
+Person(backOffice,"Менеджер депозитного подразделения")
+
+Person(rateManager,"Сотрудники депозитного\nи кредитного подразделений")
+
+Person(callOperator,"Оператор кол-центра")
+
+'========================
+' Внешние системы
+'========================
+
+System_Ext(callCenter,"Система кол-центра","CRM подрядчика")
+
+System_Ext(smsGateway,"SMS-шлюз")
+
+'========================
+' Банк
+'========================
+
+Container(site,"Сайт","PHP + React","Подача заявок новыми клиентами")
+
+Container(ib,"Интернет-банк","ASP.NET MVC","Работа действующих клиентов")
+
+System_Boundary(depositPlatform, "Платформа открытия депозитов") {
+
+Container(deposit,"Deposit Service","Java Spring Boot","Прием онлайн-заявок")
+
+Container(notification,"Notification Service","Java Spring Boot","Отправка SMS")
+
+Container(rate,"Rate Service","Java Spring Boot","Публикация ставок")
+
+Container(sync,"Rate Synchronizer","Java Spring Boot","Публикация ставок из АБС")
+
+Container(adapter,"ABS Adapter","Java Spring Boot","Интеграция с АБС")
+
+ContainerQueue(kafka,"Kafka","Message Broker","Асинхронный обмен сообщениями")
+
+ContainerDb(depositDb,"Deposit DB","MS SQL","Заявки")
+
+ContainerDb(rateDb,"Rate DB","MS SQL","Read Model ставок")
+
+}
+
+Container(abs,"АБС","Delphi + Oracle","Учет депозитов\nУправление ставками")
+
+'========================
+' Пользователи
+'========================
+
+Rel(customer, site, "Просмотр депозитов\nПодача заявки")
+
+Rel(customer, ib, "Просмотр депозитов\nОткрытие депозита")
+
+Rel(callOperator, callCenter, "Работа с обращениями")
+
+Rel(backOffice, abs, "Подтверждение открытия депозита")
+
+Rel(rateManager, abs, "Управление ставками")
+
+'========================
+' Онлайн-каналы
+'========================
+
+Rel(site, rate, "Получить актуальные ставки", "REST")
+
+Rel(ib, rate, "Получить актуальные ставки", "REST")
+
+Rel(site, deposit, "Подача заявки, подтверждение OTP", "REST")
+
+Rel(ib, deposit, "Открытие депозита, подтверждение OTP", "REST")
+
+Rel(deposit, callCenter, "Создание обращения")
+
+Rel(deposit, rate, "Получить актуальные ставки")
+
+Rel(rate, rateDb, "Read")
+
+Rel(deposit, depositDb, "CRUD")
+
+'========================
+' Kafka
+'========================
+
+Rel(deposit, kafka, "Publish SendOTP, DepositCreated\nConsume DepositConfirmed")
+
+Rel(adapter, kafka, "Consume DepositCreated")
+
+Rel(adapter, abs, "Создание депозита")
+
+Rel(adapter, kafka, "Publish DepositConfirmed")
+
+Rel(notification, kafka, "Consume SendOTP, DepositConfirmed")
+
+Rel(notification, smsGateway, "Отправка SMS (OTP, уведомления)")
+
+'========================
+' Ставки
+'========================
+
+Rel(sync, abs, "Получить изменения ставок")
+
+Rel(sync, kafka, "Publish RatesChanged")
+
+Rel(rate, kafka, "Consume RatesChanged")
+
+Rel(rate, rateDb, "Update")
+
+'========================
+' Комментарии
+'========================
+
+note right of kafka
+
+Kafka используется для:
+
+• асинхронной обработки заявок;
+
+• ограничения нагрузки
+на АБС;
+
+• повторной обработки
+при ошибках;
+
+• публикации изменений
+ставок.
+
+end note
+
+note bottom of abs
+
+АБС остается
+мастер-системой.
+
+Хранит:
+
+• депозиты;
+
+• ставки;
+
+• процесс согласования.
+
+end note
+
+note bottom of rate
+
+Rate Service —
+Read Model.
+
+Интернет-банк
+и сайт работают
+только с ним.
+
+end note
+
+@enduml
