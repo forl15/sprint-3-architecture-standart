@@ -1,0 +1,68 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C4 Context Diagram\nMVP "Онлайн-открытие депозитов"
+
+LAYOUT_LEFT_RIGHT()
+
+'========================
+' Пользователи
+'========================
+
+Person(customer, "Клиент","Просматривает депозиты и подает заявки")
+
+Person(backOffice,"Менеджер депозитного подразделения","Подтверждает открытие депозитов")
+
+Person(rateManager,"Сотрудники депозитного и кредитного подразделений","Управляют депозитными ставками")
+
+Person(callOperator,"Оператор кол-центра","Консультирует новых клиентов")
+
+'========================
+' Основная система
+'========================
+
+System(depositPlatform,"Платформа открытия депозитов","Онлайн-открытие депозитов, публикация ставок и уведомление клиентов")
+
+'========================
+' Внешние системы
+'========================
+
+System_Ext(site,"Сайт банка","PHP + React")
+
+System_Ext(ib,"Интернет-банк","ASP.NET MVC")
+
+System_Ext(abs,"Автоматизированная банковская система (АБС)","Delphi + Oracle")
+
+System_Ext(callCenter,"Система кол-центра","CRM подрядчика")
+
+System_Ext(smsGateway,"SMS-шлюз","Отправка SMS")
+
+'========================
+' Взаимодействия пользователей
+'========================
+
+Rel(customer, site,"Просмотр депозитов\nПодача заявки")
+
+Rel(customer, ib,"Просмотр депозитов\nОткрытие депозита")
+
+Rel(callOperator, callCenter,"Работа с обращениями")
+
+Rel(backOffice, abs,"Подтверждение открытия депозита")
+
+Rel(rateManager, abs,"Управление депозитными ставками")
+
+'========================
+' Интеграции
+'========================
+
+Rel(site, depositPlatform,"REST/HTTPS")
+
+Rel(ib, depositPlatform,"REST/HTTPS")
+
+Rel(depositPlatform, callCenter,"Создание обращения\nдля нового клиента")
+
+Rel(depositPlatform, abs,"Создание депозитов\nПолучение ставок")
+
+Rel(depositPlatform, smsGateway,"Отправка SMS")
+
+@enduml
